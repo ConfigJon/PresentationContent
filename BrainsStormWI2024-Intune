@@ -1,0 +1,24 @@
+\\ Autopilot Device Upload Script
+Install-Script Get-WindowsAutopilotInfo
+Get-WindowsAutopilotInfo.ps1 -Online
+
+\\ Autopilot Troubleshooting Script
+Install-Script Get-AutopilotDiagnostics
+Get-AutopilotDiagnostics.ps1 -Online
+
+\\ MDMDiag Tool
+MdmDiagnosticsTool.exe -area autopilot -cab C:\temp\autopilot.cab
+
+\\ DsRegCmd
+dsregcmd.exe /Status
+dsregcmd.exe /Join
+dsregcmd.exe /Leave
+
+\\ Serial Number WMI Lookup
+(Get-CimInstance -Class Win32_Bios).SerialNumber
+
+\\ Hardware hash WMI Lookup
+(Get-CimInstance -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01).DeviceHardwareData
+
+\\ SCCM Hardware Hash Query
+select SMS_R_System.Name, SMS_G_System_PC_BIOS.SerialNumber, SMS_G_System_MDM_DEVDETAIL_EXT01.DeviceHardwareData from  SMS_R_System inner join SMS_G_System_PC_BIOS on SMS_G_System_PC_BIOS.ResourceId = SMS_R_System.ResourceId inner join SMS_G_System_MDM_DEVDETAIL_EXT01 on SMS_G_System_MDM_DEVDETAIL_EXT01.ResourceId = SMS_R_System.ResourceId
