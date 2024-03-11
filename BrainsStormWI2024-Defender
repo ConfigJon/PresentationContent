@@ -1,0 +1,172 @@
+// ASR - All Rule Detection Details
+DeviceEvents
+| where ActionType startswith 'Asr'
+| where ActionType !startswith 'AsrLsassCredentialTheft'
+| extend FullPath = strcat(FolderPath, "\\", FileName)
+| project ActionType, DeviceName, FullPath, InitiatingProcessAccountName, InitiatingProcessFolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessCreationTime
+
+// ASR - All Rule Detection Devices
+DeviceEvents
+| where ActionType startswith 'Asr'
+| where ActionType !startswith 'AsrLsassCredentialTheft'
+| extend FullPath = strcat(FolderPath, "\\", FileName)
+| summarize count() by ActionType, DeviceName, FullPath
+
+// ASR - All Rule Detection Paths
+DeviceEvents
+| where ActionType startswith 'Asr'
+| where ActionType !startswith 'AsrLsassCredentialTheft'
+| extend FullPath = strcat(FolderPath, "\\", FileName)
+| distinct FullPath
+
+// ASR - Rules - Audit Detections
+DeviceEvents
+| where ActionType startswith "Asr" and ActionType endswith "Audited"
+| summarize EventCount=count(), MachinesCount=dcount(DeviceId) by ActionType
+
+// ASR - Rules - Block Detections
+DeviceEvents
+| where ActionType startswith "Asr" and ActionType endswith "Blocked"
+| summarize EventCount=count(), MachinesCount=dcount(DeviceId) by ActionType
+
+// ASR - Rules - No Audit Detections
+let asrRules = datatable(ActionType:string) ['AsrExecutableEmailContentAudited','AsrExecutableOfficeContentAudited','AsrLsassCredentialTheftAudited','AsrObfuscatedScriptAudited','AsrOfficeChildProcessAudited','AsrOfficeCommAppChildProcessAudited','AsrOfficeMacroWin32ApiCallsAudited','AsrOfficeProcessInjectionAudited','AsrPersistenceThroughWmiAudited','AsrPsexecWmiChildProcessAudited','AsrRansomwareAudited','AsrScriptExecutableDownloadAudited','AsrUntrustedExecutableAudited','AsrUntrustedUsbProcessAudited','AsrVulnerableSignedDriverAudited'];
+DeviceEvents
+| where ActionType startswith 'Asr'
+| distinct ActionType
+| join kind=rightanti asrRules on ActionType
+
+// ASR - Rules - No Block Detections
+let asrRules = datatable(ActionType:string) ['AsrExecutableEmailContentBlocked','AsrExecutableOfficeContentBlocked','AsrLsassCredentialTheftBlocked','AsrObfuscatedScriptBlocked','AsrOfficeChildProcessBlocked','AsrOfficeCommAppChildProcessBlocked','AsrOfficeMacroWin32ApiCallsBlocked','AsrOfficeProcessInjectionBlocked','AsrPersistenceThroughWmiBlocked','AsrPsexecWmiChildProcessBlocked','AsrRansomwareBlocked','AsrScriptExecutableDownloadBlocked','AsrUntrustedExecutableBlocked','AsrUntrustedUsbProcessBlocked','AsrVulnerableSignedDriverBlocked'];
+DeviceEvents
+| where ActionType startswith 'Asr'
+| distinct ActionType
+| join kind=rightanti asrRules on ActionType
+
+// ASR - Specific Rule Detections Summary
+DeviceEvents
+| where ActionType == 'AsrUntrustedExecutableAudited'
+| extend FullPath = strcat(FolderPath, "\\", FileName)
+| summarize count() by ActionType, DeviceName, FullPath
+// AsrVulnerableSignedDriver
+// AsrAdobeReaderChildProcess
+// AsrOfficeChildProcess
+// AsrLsassCredentialTheft
+// AsrExecutableEmailContent
+// AsrUntrustedExecutable
+// AsrObfuscatedScript
+// AsrScriptExecutableDownload
+// AsrExecutableOfficeContent
+// AsrOfficeProcessInjection
+// AsrOfficeCommAppChildProcess
+// AsrPersistenceThroughWmi
+// AsrPsexecWmiChildProcess
+// AsrUntrustedUsbProcess
+// AsrOfficeMacroWin32ApiCalls
+// AsrRansomware
+
+// Antivirus Detections - All
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend x = parse_json(AdditionalFields)
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, ThreatName = tostring(x.ThreatName), WasExecutingWhileDetected = tostring(x.WasExecutingWhileDetected), WasRemediated = tostring(x.WasRemediated)
+
+// Antivirus Detections - Not Remediated
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend x = parse_json(AdditionalFields)
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, ThreatName = tostring(x.ThreatName), WasExecutingWhileDetected = tostring(x.WasExecutingWhileDetected), WasRemediated = tostring(x.WasRemediated)
+| where WasRemediated startswith "false"
+
+// Antivirus Detections - Remediated
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend x = parse_json(AdditionalFields)
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, ThreatName = tostring(x.ThreatName), WasExecutingWhileDetected = tostring(x.WasExecutingWhileDetected), WasRemediated = tostring(x.WasRemediated)
+| where WasRemediated startswith "true"
+
+// Antivirus Detections - PUA
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend x = parse_json(AdditionalFields)
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, ThreatName = tostring(x.ThreatName), WasExecutingWhileDetected = tostring(x.WasExecutingWhileDetected), WasRemediated = tostring(x.WasRemediated)
+| where ThreatName startswith_cs 'PUA:'
+
+// Antivirus Detections - Ransomware
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend x = parse_json(AdditionalFields)
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, ThreatName = tostring(x.ThreatName), WasExecutingWhileDetected = tostring(x.WasExecutingWhileDetected), WasRemediated = tostring(x.WasRemediated)
+| where ThreatName startswith "Ransom"
+
+// App Control - Action Type Details
+DeviceEvents
+| where ActionType startswith "AppControlExecutableAudited"
+| extend FullPath = strcat(FolderPath, "\\", FileName)
+| project DeviceName, FullPath, InitiatingProcessAccountName, InitiatingProcessFolderPath, InitiatingProcessCommandLine, InitiatingProcessCreationTime
+
+// App Control - Action Type Detections Summary
+DeviceEvents
+| where ActionType startswith "AppControl"
+| summarize Machines=dcount(DeviceName) by ActionType
+| order by Machines desc
+
+// CFA - Audit Details
+DeviceEvents
+| where ActionType == 'ControlledFolderAccessViolationAudited'
+| project DeviceName, FolderPath, InitiatingProcessFolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessAccountName
+
+// CFA - Audit Summary
+DeviceEvents
+| where ActionType == 'ControlledFolderAccessViolationAudited'
+| summarize count() by FolderPath
+
+// CFA - Block Details
+DeviceEvents
+| where ActionType == 'ControlledFolderAccessViolationBlocked'
+| project DeviceName, FolderPath, InitiatingProcessFolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessAccountName
+
+// CFA - Block Summary
+DeviceEvents
+| where ActionType == 'ControlledFolderAccessViolationBlocked'
+| summarize count() by FolderPath
+
+// Network Protection - URL Audit Details
+DeviceEvents
+| where ActionType == 'ExploitGuardNetworkProtectionAudited'
+| project DeviceName, RemoteUrl, InitiatingProcessFileName, InitiatingProcessAccountName
+
+// Network Protection - URL Audit Summary
+DeviceEvents
+| where ActionType == 'ExploitGuardNetworkProtectionAudited'
+| summarize count() by RemoteUrl
+
+// Network Protection - URL Block Details
+DeviceEvents
+| where ActionType == 'ExploitGuardNetworkProtectionBlocked'
+| project DeviceName, RemoteUrl, InitiatingProcessFileName, InitiatingProcessAccountName
+
+// Network Protection - URL Block Summary
+DeviceEvents
+| where ActionType == 'ExploitGuardNetworkProtectionBlocked'
+| summarize count() by RemoteUrl
+
+// SmartScreen - URL Warning Details
+DeviceEvents
+| where ActionType == "SmartScreenUrlWarning"
+| project DeviceName, RemoteUrl, InitiatingProcessFileName, InitiatingProcessAccountName
+
+// SmartScreen - URL Warning Summary
+DeviceEvents
+| where ActionType == "SmartScreenUrlWarning"
+| summarize count() by RemoteUrl
+
+// SmartScreen - User Override Details
+DeviceEvents
+| where ActionType == "SmartScreenUserOverride"
+| project DeviceName, RemoteUrl, InitiatingProcessFileName, InitiatingProcessAccountName
+
+// SmartScreen - User Override Summary
+DeviceEvents
+| where ActionType == "SmartScreenUserOverride"
+| summarize count() by RemoteUrl
